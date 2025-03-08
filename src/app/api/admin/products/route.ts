@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@vercel/kv'
 
+// Check if KV is configured
+if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+  console.error('KV database is not configured. Please set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.')
+}
+
 const kv = createClient({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!
+  url: process.env.KV_REST_API_URL || '',
+  token: process.env.KV_REST_API_TOKEN || '',
 })
 
 const PRODUCTS_KEY = 'products'
@@ -29,8 +34,18 @@ const checkAuth = () => {
 // Helper to read products
 const readProducts = async (): Promise<Product[]> => {
   try {
+    // Check if KV is configured
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+      throw new Error('KV database is not configured')
+    }
+
     const products = await kv.get<Product[]>(PRODUCTS_KEY)
-    return products || []
+    if (!products) {
+      // Initialize with empty array if no products exist
+      await kv.set(PRODUCTS_KEY, [])
+      return []
+    }
+    return products
   } catch (error) {
     console.error('Error reading products:', error)
     throw new Error('Failed to read products from database')
@@ -40,6 +55,11 @@ const readProducts = async (): Promise<Product[]> => {
 // Helper to write products
 const writeProducts = async (products: Product[]) => {
   try {
+    // Check if KV is configured
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+      throw new Error('KV database is not configured')
+    }
+
     await kv.set(PRODUCTS_KEY, products)
   } catch (error) {
     console.error('Error writing products:', error)

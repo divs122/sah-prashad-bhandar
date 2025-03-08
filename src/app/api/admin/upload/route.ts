@@ -4,6 +4,11 @@ import { put } from '@vercel/blob'
 
 export const runtime = 'edge'
 
+// Check if Blob store is configured
+if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  console.error('Blob storage is not configured. Please set BLOB_READ_WRITE_TOKEN environment variable.')
+}
+
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     // Check authentication
@@ -21,7 +26,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       console.error('BLOB_READ_WRITE_TOKEN is not configured')
       return NextResponse.json({
         success: false,
-        message: 'Storage configuration error'
+        message: 'Storage configuration error: Blob storage is not configured'
       }, { status: 500 })
     }
 
@@ -47,24 +52,40 @@ export async function POST(request: Request): Promise<NextResponse> {
       }, { status: 400 })
     }
 
+    const contentType = request.headers.get('content-type')
+    if (!contentType?.startsWith('image/')) {
+      return NextResponse.json({
+        success: false,
+        message: 'Only image files are allowed'
+      }, { status: 400 })
+    }
+
     console.log('Starting file upload:', {
       filename: uniqueFilename,
-      contentType: request.headers.get('content-type')
+      contentType: contentType
     })
 
-    // Upload to Vercel Blob Storage
-    const blob = await put(uniqueFilename, file, {
-      access: 'public',
-      contentType: request.headers.get('content-type') || 'application/octet-stream',
-      addRandomSuffix: false // Use our own unique filename
-    })
+    try {
+      // Upload to Vercel Blob Storage
+      const blob = await put(uniqueFilename, file, {
+        access: 'public',
+        contentType: contentType,
+        addRandomSuffix: false // Use our own unique filename
+      })
 
-    console.log('File uploaded successfully:', blob.url)
+      console.log('File uploaded successfully:', blob.url)
 
-    return NextResponse.json({
-      success: true,
-      ...blob
-    })
+      return NextResponse.json({
+        success: true,
+        ...blob
+      })
+    } catch (uploadError: any) {
+      console.error('Blob storage error:', uploadError)
+      return NextResponse.json({
+        success: false,
+        message: `Storage error: ${uploadError.message}`
+      }, { status: 500 })
+    }
   } catch (error: any) {
     console.error('Upload error:', {
       message: error.message,
