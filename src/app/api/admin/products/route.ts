@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { kv } from '@vercel/kv'
+import { createClient } from '@vercel/kv'
+
+const kv = createClient({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!
+})
 
 const PRODUCTS_KEY = 'products'
 
@@ -28,7 +33,7 @@ const readProducts = async (): Promise<Product[]> => {
     return products || []
   } catch (error) {
     console.error('Error reading products:', error)
-    return []
+    throw new Error('Failed to read products from database')
   }
 }
 
@@ -38,7 +43,7 @@ const writeProducts = async (products: Product[]) => {
     await kv.set(PRODUCTS_KEY, products)
   } catch (error) {
     console.error('Error writing products:', error)
-    throw new Error('Failed to save products')
+    throw new Error('Failed to save products to database')
   }
 }
 
@@ -47,11 +52,11 @@ export async function GET() {
   try {
     const products = await readProducts()
     return NextResponse.json({ success: true, products })
-  } catch (error) {
+  } catch (error: any) {
     console.error('GET products error:', error)
     return NextResponse.json({
       success: false,
-      message: 'Failed to fetch products'
+      message: `Failed to fetch products: ${error.message}`
     }, { status: 500 })
   }
 }
