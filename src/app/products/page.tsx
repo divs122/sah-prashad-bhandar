@@ -43,13 +43,6 @@ const categories = [
         price: '₹15,101',
         image: '/images/golu-devta.jpg',
       },
-      {
-        id: 5,
-        name: 'Marble Temple Set',
-        description: 'Complete marble temple set with deities',
-        price: '₹15,101',
-        image: '/images/temple-set.jpg',
-      },
     ],
   },
   {
@@ -57,14 +50,14 @@ const categories = [
     name: 'Temple Equipment',
     products: [
       {
-        id: 6,
+        id: 5,
         name: 'Temple Bell Set',
         description: 'Traditional brass bells in various sizes',
         price: '₹1,000/kg',
         image: '/images/bell3.jpg',
       },
       {
-        id: 7,
+        id: 6,
         name: 'Puja Thali Set',
         description: 'Complete brass puja thali with all accessories',
         price: '₹1,501',
@@ -103,7 +96,7 @@ export default function Products() {
                           fill
                           className={`${
                             product.id === 3 ? 'object-contain p-4 scale-75' : 
-                            product.id === 6 ? 'object-cover p-0' : 
+                            product.id === 5 ? 'object-cover p-0' : 
                             'object-contain p-2'
                           }`}
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
