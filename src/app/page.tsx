@@ -10,7 +10,7 @@ const featuredProducts = [
     name: 'Special Prashad',
     description: 'Blessed offerings from Golu Devta Temple',
     image: '/images/prashad.jpg',
-    price: '₹501',
+    price: '₹151',
   },
   {
     id: 2,

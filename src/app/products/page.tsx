@@ -13,7 +13,7 @@ const categories = [
         id: 1,
         name: 'Special Prashad Box',
         description: 'Complete prashad box with laddoo, dry fruits, and special offerings',
-        price: '₹1,101',
+        price: '₹151',
         image: '/images/prashad-box.jpg',
       },
       {
