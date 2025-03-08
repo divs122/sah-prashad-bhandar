@@ -34,10 +34,17 @@ const categories = [
         name: 'Brass Golu Devta Idol',
         description: 'Handcrafted brass idol of Golu Devta',
         price: '₹5,101',
-        image: '/images/golu-devta.jpg',
+        image: '/images/murti.png',
       },
       {
         id: 4,
+        name: 'Brass Golu Devta Idol (Large)',
+        description: 'Handcrafted brass idol of Golu Devta - Temple Size',
+        price: '₹15,101',
+        image: '/images/golu-devta.jpg',
+      },
+      {
+        id: 5,
         name: 'Marble Temple Set',
         description: 'Complete marble temple set with deities',
         price: '₹15,101',
@@ -50,14 +57,14 @@ const categories = [
     name: 'Temple Equipment',
     products: [
       {
-        id: 5,
+        id: 6,
         name: 'Temple Bell Set',
         description: 'Traditional brass bells in various sizes',
         price: '₹1,000/kg',
         image: '/images/bell3.jpg',
       },
       {
-        id: 6,
+        id: 7,
         name: 'Puja Thali Set',
         description: 'Complete brass puja thali with all accessories',
         price: '₹1,501',
