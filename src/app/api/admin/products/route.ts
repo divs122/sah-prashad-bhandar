@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import clientPromise from '@/lib/mongodb'
-import { ObjectId } from 'mongodb'
+import { sql } from '@vercel/postgres'
 
 interface Product {
-  _id?: ObjectId
   id: number
   name: string
   description: string
   price: number
   category: string
   image?: string
+  created_at: Date
 }
 
 // Middleware to check admin authentication
@@ -21,30 +20,35 @@ const checkAuth = () => {
   }
 }
 
-// Helper to get MongoDB collection
-const getCollection = async () => {
+// Helper to ensure table exists
+const ensureTable = async () => {
   try {
-    const client = await clientPromise
-    const db = client.db('sah-prashad')
-    return db.collection<Product>('products')
+    await sql`
+      CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        category VARCHAR(255) NOT NULL,
+        image VARCHAR(255),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `
   } catch (error) {
-    console.error('MongoDB connection error:', error)
-    throw new Error('Failed to connect to database')
+    console.error('Error creating table:', error)
+    throw new Error('Failed to initialize database')
   }
 }
 
 // GET - List all products
 export async function GET() {
   try {
-    const collection = await getCollection()
-    const products = await collection.find({}).toArray()
+    await ensureTable()
+    const { rows } = await sql`SELECT * FROM products ORDER BY created_at DESC;`
     
     return NextResponse.json({ 
       success: true, 
-      products: products.map(p => ({
-        ...p,
-        _id: p._id?.toString() // Convert ObjectId to string
-      }))
+      products: rows
     })
   } catch (error: any) {
     console.error('GET products error:', error)
@@ -63,28 +67,20 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('Received product data:', body)
 
-    const collection = await getCollection()
+    await ensureTable()
     
-    const newProduct: Product = {
-      id: Date.now(),
-      name: body.name,
-      description: body.description,
-      price: Number(body.price),
-      category: body.category,
-      image: body.image
-    }
+    const { rows: [newProduct] } = await sql`
+      INSERT INTO products (name, description, price, category, image)
+      VALUES (${body.name}, ${body.description}, ${Number(body.price)}, ${body.category}, ${body.image || null})
+      RETURNING *;
+    `
 
-    console.log('Creating new product:', newProduct)
-    const result = await collection.insertOne(newProduct)
-    console.log('Product created with ID:', result.insertedId)
+    console.log('Product created:', newProduct)
 
     return NextResponse.json({
       success: true,
       message: 'Product created successfully',
-      product: {
-        ...newProduct,
-        _id: result.insertedId.toString()
-      }
+      product: newProduct
     })
   } catch (error: any) {
     console.error('POST product error details:', {
@@ -109,14 +105,19 @@ export async function PUT(request: Request) {
     const body = await request.json()
     const { id, ...updateData } = body
     
-    const collection = await getCollection()
-    const result = await collection.findOneAndUpdate(
-      { id: id },
-      { $set: updateData },
-      { returnDocument: 'after' }
-    )
+    const { rows: [updatedProduct] } = await sql`
+      UPDATE products
+      SET 
+        name = ${updateData.name},
+        description = ${updateData.description},
+        price = ${Number(updateData.price)},
+        category = ${updateData.category},
+        image = ${updateData.image || null}
+      WHERE id = ${id}
+      RETURNING *;
+    `
     
-    if (!result) {
+    if (!updatedProduct) {
       return NextResponse.json({
         success: false,
         message: 'Product not found'
@@ -126,10 +127,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Product updated successfully',
-      product: {
-        ...result,
-        _id: result._id?.toString()
-      }
+      product: updatedProduct
     })
   } catch (error: any) {
     console.error('PUT product error:', error)
@@ -150,10 +148,12 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url)
     const id = Number(url.pathname.split('/').pop())
     
-    const collection = await getCollection()
-    const result = await collection.deleteOne({ id: id })
+    const { rowCount } = await sql`
+      DELETE FROM products
+      WHERE id = ${id};
+    `
     
-    if (result.deletedCount === 0) {
+    if (rowCount === 0) {
       return NextResponse.json({
         success: false,
         message: 'Product not found'
