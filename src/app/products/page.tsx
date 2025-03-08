@@ -54,7 +54,7 @@ const categories = [
         name: 'Temple Bell Set',
         description: 'Traditional brass bells in various sizes',
         price: '₹1,000/kg',
-        image: '/images/bells.jpg',
+        image: '/images/bell1.jpg',
       },
       {
         id: 6,
