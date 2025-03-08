@@ -1,13 +1,23 @@
-import { useState, useRef, FormEvent } from 'react'
+import { useState, useRef, FormEvent, useEffect } from 'react'
 import type { PutBlobResult } from '@vercel/blob'
+
+interface Product {
+  id?: number
+  name: string
+  description: string
+  price: number | string
+  category: string
+  image?: string
+}
 
 interface ProductFormProps {
   onSubmit: (data: any) => void
   loading?: boolean
+  initialData?: Product
 }
 
-export default function ProductForm({ onSubmit, loading }: ProductFormProps) {
-  const [formData, setFormData] = useState({
+export default function ProductForm({ onSubmit, loading, initialData }: ProductFormProps) {
+  const [formData, setFormData] = useState<Product>({
     name: '',
     description: '',
     price: '',
@@ -17,6 +27,12 @@ export default function ProductForm({ onSubmit, loading }: ProductFormProps) {
   const [uploadStatus, setUploadStatus] = useState('')
   const [uploadError, setUploadError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData)
+    }
+  }, [initialData])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -170,7 +186,7 @@ export default function ProductForm({ onSubmit, loading }: ProductFormProps) {
           disabled={loading || uploadStatus === 'Uploading...'}
           className={`px-4 py-2 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${(loading || uploadStatus === 'Uploading...') ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {loading ? 'Creating...' : uploadStatus === 'Uploading...' ? 'Uploading...' : 'Create Product'}
+          {loading ? 'Saving...' : uploadStatus === 'Uploading...' ? 'Uploading...' : initialData ? 'Update Product' : 'Create Product'}
         </button>
       </div>
     </form>
