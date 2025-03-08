@@ -11,8 +11,8 @@ const categories = [
     products: [
       {
         id: 1,
-        name: 'Special Prashad Box',
-        description: 'Complete prashad box with laddoo, dry fruits, and special offerings',
+        name: 'Prashad Thali',
+        description: 'Nariyal with chunri,Parmal,Ilaichidana,Batasha,Doop,Khichdi,Pithiya/Chandan,Shringaar',
         price: '₹151',
         image: '/images/prashad-box.jpg',
       },

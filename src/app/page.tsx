@@ -7,8 +7,8 @@ import Footer from './components/Footer'
 const featuredProducts = [
   {
     id: 1,
-    name: 'Special Prashad',
-    description: 'Blessed offerings from Golu Devta Temple',
+    name: 'Prashad Thali',
+    description: 'Nariyal with chunri,Parmal,Ilaichidana,Batasha,Doop,Khichdi,Pithiya/Chandan,Shringaar',
     image: '/images/prashad.jpg',
     price: '₹151',
   },
