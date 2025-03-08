@@ -16,7 +16,7 @@ const featuredProducts = [
     id: 2,
     name: 'Brass Temple Bell',
     description: 'Traditional temple bell with divine sound',
-    image: '/images/bell1.jpg',
+    image: '/images/bell3.jpg',
     price: '₹1,000/kg',
   },
   {
