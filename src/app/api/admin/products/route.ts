@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { sql } from '@vercel/postgres'
+import { put, list, del } from '@vercel/blob'
+
+const PRODUCTS_FILE = 'products.json'
 
 interface Product {
   id: number
@@ -9,7 +11,7 @@ interface Product {
   price: number
   category: string
   image?: string
-  created_at: Date
+  created_at: string
 }
 
 // Middleware to check admin authentication
@@ -20,36 +22,50 @@ const checkAuth = () => {
   }
 }
 
-// Helper to ensure table exists
-const ensureTable = async () => {
+// Helper to read products
+const readProducts = async (): Promise<Product[]> => {
   try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS products (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT NOT NULL,
-        price DECIMAL(10,2) NOT NULL,
-        category VARCHAR(255) NOT NULL,
-        image VARCHAR(255),
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `
+    // List all blobs to check if products.json exists
+    const { blobs } = await list()
+    const productsBlob = blobs.find(b => b.pathname === PRODUCTS_FILE)
+
+    if (!productsBlob) {
+      // Initialize with empty array if file doesn't exist
+      await put(PRODUCTS_FILE, JSON.stringify([]), {
+        access: 'public',
+        contentType: 'application/json'
+      })
+      return []
+    }
+
+    // Fetch the products file
+    const response = await fetch(productsBlob.url)
+    const products = await response.json()
+    return products
   } catch (error) {
-    console.error('Error creating table:', error)
-    throw new Error('Failed to initialize database')
+    console.error('Error reading products:', error)
+    throw new Error('Failed to read products')
+  }
+}
+
+// Helper to write products
+const writeProducts = async (products: Product[]) => {
+  try {
+    await put(PRODUCTS_FILE, JSON.stringify(products, null, 2), {
+      access: 'public',
+      contentType: 'application/json'
+    })
+  } catch (error) {
+    console.error('Error writing products:', error)
+    throw new Error('Failed to save products')
   }
 }
 
 // GET - List all products
 export async function GET() {
   try {
-    await ensureTable()
-    const { rows } = await sql`SELECT * FROM products ORDER BY created_at DESC;`
-    
-    return NextResponse.json({ 
-      success: true, 
-      products: rows
-    })
+    const products = await readProducts()
+    return NextResponse.json({ success: true, products })
   } catch (error: any) {
     console.error('GET products error:', error)
     return NextResponse.json({
@@ -67,15 +83,24 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('Received product data:', body)
 
-    await ensureTable()
+    const products = await readProducts()
     
-    const { rows: [newProduct] } = await sql`
-      INSERT INTO products (name, description, price, category, image)
-      VALUES (${body.name}, ${body.description}, ${Number(body.price)}, ${body.category}, ${body.image || null})
-      RETURNING *;
-    `
+    const newProduct: Product = {
+      id: Date.now(),
+      name: body.name,
+      description: body.description,
+      price: Number(body.price),
+      category: body.category,
+      image: body.image,
+      created_at: new Date().toISOString()
+    }
 
-    console.log('Product created:', newProduct)
+    console.log('Creating new product:', newProduct)
+    products.push(newProduct)
+    
+    console.log('Saving products...')
+    await writeProducts(products)
+    console.log('Products saved successfully')
 
     return NextResponse.json({
       success: true,
@@ -105,29 +130,29 @@ export async function PUT(request: Request) {
     const body = await request.json()
     const { id, ...updateData } = body
     
-    const { rows: [updatedProduct] } = await sql`
-      UPDATE products
-      SET 
-        name = ${updateData.name},
-        description = ${updateData.description},
-        price = ${Number(updateData.price)},
-        category = ${updateData.category},
-        image = ${updateData.image || null}
-      WHERE id = ${id}
-      RETURNING *;
-    `
+    const products = await readProducts()
+    const index = products.findIndex(p => p.id === id)
     
-    if (!updatedProduct) {
+    if (index === -1) {
       return NextResponse.json({
         success: false,
         message: 'Product not found'
       }, { status: 404 })
     }
 
+    // Update the product
+    products[index] = {
+      ...products[index],
+      ...updateData,
+      id: products[index].id // Preserve the original ID
+    }
+
+    await writeProducts(products)
+
     return NextResponse.json({
       success: true,
       message: 'Product updated successfully',
-      product: updatedProduct
+      product: products[index]
     })
   } catch (error: any) {
     console.error('PUT product error:', error)
@@ -148,17 +173,33 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url)
     const id = Number(url.pathname.split('/').pop())
     
-    const { rowCount } = await sql`
-      DELETE FROM products
-      WHERE id = ${id};
-    `
+    const products = await readProducts()
+    const productToDelete = products.find(p => p.id === id)
     
-    if (rowCount === 0) {
+    if (!productToDelete) {
       return NextResponse.json({
         success: false,
         message: 'Product not found'
       }, { status: 404 })
     }
+
+    // Delete the product's image if it exists
+    if (productToDelete.image) {
+      try {
+        const imageUrl = new URL(productToDelete.image)
+        const imagePath = imageUrl.pathname.split('/').pop()
+        if (imagePath) {
+          await del(imagePath)
+        }
+      } catch (error) {
+        console.error('Error deleting product image:', error)
+        // Continue with product deletion even if image deletion fails
+      }
+    }
+
+    // Remove the product from the list
+    const updatedProducts = products.filter(p => p.id !== id)
+    await writeProducts(updatedProducts)
 
     return NextResponse.json({
       success: true,
