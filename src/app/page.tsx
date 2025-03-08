@@ -8,7 +8,7 @@ const featuredProducts = [
   {
     id: 1,
     name: 'Prashad Thali',
-    description: 'Nariyal with chunri,Parmal,Ilaichidana,Batasha,Doop,Khichdi,Pithiya/Chandan,Shringaar',
+    description: 'Box includes: Doop, Khichdi, Pithiya/Chandan, Shringaar | Additional items (charged separately): Nariyal with chunri, Parmal, Ilaichidana, Batasha',
     image: '/images/prashad.jpg',
     price: '₹151',
   },
