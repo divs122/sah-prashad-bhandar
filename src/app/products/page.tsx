@@ -101,8 +101,10 @@ export default function Products() {
                           src={product.image}
                           alt={product.name}
                           fill
-                          className={`object-contain p-4 ${
-                            product.id === 3 ? 'scale-75' : 'object-cover p-0'
+                          className={`${
+                            product.id === 3 ? 'object-contain p-4 scale-75' : 
+                            product.id === 6 ? 'object-cover p-0' : 
+                            'object-contain p-2'
                           }`}
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
