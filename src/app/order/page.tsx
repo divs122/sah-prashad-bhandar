@@ -1,9 +1,50 @@
-import React from 'react'
+'use client';
+
+import React, { useState } from 'react'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { FaShoppingCart } from 'react-icons/fa'
 
 export default function Order() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage({ type: '', text: '' });
+
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      const response = await fetch('/api/submit-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message });
+        // Reset form
+        (e.target as HTMLFormElement).reset();
+      } else {
+        setMessage({ type: 'error', text: result.message });
+      }
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: 'Failed to submit order. Please try again or contact us directly.' 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <Header />
@@ -17,7 +58,15 @@ export default function Order() {
               Place Your Order
             </h1>
 
-            <form className="space-y-6">
+            {message.text && (
+              <div className={`p-4 rounded-md mb-6 ${
+                message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
+                {message.text}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Personal Information */}
               <div className="space-y-6">
                 <h2 className="font-heading text-xl font-bold text-primary">
@@ -172,9 +221,12 @@ export default function Order() {
               <div className="pt-6">
                 <button
                   type="submit"
-                  className="w-full px-6 py-3 bg-primary text-white font-medium rounded-md hover:bg-accent transition-colors"
+                  disabled={isSubmitting}
+                  className={`w-full px-6 py-3 bg-primary text-white font-medium rounded-md transition-colors ${
+                    isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent'
+                  }`}
                 >
-                  Submit Order
+                  {isSubmitting ? 'Submitting...' : 'Submit Order'}
                 </button>
               </div>
             </form>
