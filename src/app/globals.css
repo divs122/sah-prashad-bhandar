@@ -4,8 +4,9 @@
 
 @layer base {
   :root {
-    --foreground-rgb: 51, 51, 51;
-    --background-rgb: 248, 244, 241;
+    --foreground-rgb: 0, 0, 0;
+    --background-start-rgb: 214, 219, 220;
+    --background-end-rgb: 255, 255, 255;
   }
 
   html {
@@ -15,7 +16,7 @@
   body {
     @apply font-body;
     color: rgb(var(--foreground-rgb));
-    background: rgb(var(--background-rgb));
+    background: rgb(var(--background-start-rgb));
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -51,4 +52,78 @@
   .section-subtitle {
     @apply text-lg md:text-xl text-text-primary mb-8;
   }
+}
+
+/* Modern Selection Style */
+::selection {
+  background-color: #FFA500;
+  color: white;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FFA500;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF8C00;
+}
+
+/* Smooth Transitions */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Button Hover Effects */
+.btn-hover-effect {
+  @apply relative overflow-hidden transition-all duration-300;
+}
+
+.btn-hover-effect:after {
+  content: '';
+  @apply absolute inset-0 bg-white opacity-0 transition-opacity duration-300;
+}
+
+.btn-hover-effect:hover:after {
+  @apply opacity-20;
+}
+
+/* Image Hover Effects */
+.img-hover-effect {
+  @apply transition-transform duration-300 hover:scale-105;
+}
+
+/* Card Hover Effects */
+.card-hover-effect {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+}
+
+/* Main Content Padding for Fixed Header */
+main {
+  @apply pt-20;
+}
+
+/* Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 } 
