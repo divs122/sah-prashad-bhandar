@@ -13,19 +13,43 @@ const checkAuth = () => {
   }
 }
 
+// Helper to ensure data directory exists
+const ensureDataDirectory = async () => {
+  const dataDir = path.join(process.cwd(), 'data')
+  try {
+    await fs.access(dataDir)
+  } catch {
+    await fs.mkdir(dataDir, { recursive: true })
+  }
+}
+
 // Helper to read products file
 const readProducts = async () => {
   try {
-    const data = await fs.readFile(PRODUCTS_FILE, 'utf-8')
-    return JSON.parse(data)
+    await ensureDataDirectory()
+    try {
+      const data = await fs.readFile(PRODUCTS_FILE, 'utf-8')
+      return JSON.parse(data)
+    } catch (error) {
+      // If file doesn't exist or is empty, initialize with empty array
+      await fs.writeFile(PRODUCTS_FILE, '[]')
+      return []
+    }
   } catch (error) {
+    console.error('Error reading products:', error)
     return []
   }
 }
 
 // Helper to write products file
 const writeProducts = async (products: any[]) => {
-  await fs.writeFile(PRODUCTS_FILE, JSON.stringify(products, null, 2))
+  try {
+    await ensureDataDirectory()
+    await fs.writeFile(PRODUCTS_FILE, JSON.stringify(products, null, 2))
+  } catch (error) {
+    console.error('Error writing products:', error)
+    throw new Error('Failed to save products')
+  }
 }
 
 // GET - List all products
@@ -34,6 +58,7 @@ export async function GET() {
     const products = await readProducts()
     return NextResponse.json({ success: true, products })
   } catch (error) {
+    console.error('GET products error:', error)
     return NextResponse.json({
       success: false,
       message: 'Failed to fetch products'
@@ -63,6 +88,7 @@ export async function POST(request: Request) {
       product: newProduct
     })
   } catch (error: any) {
+    console.error('POST product error:', error)
     return NextResponse.json({
       success: false,
       message: error.message === 'Unauthorized' 
@@ -99,6 +125,7 @@ export async function PUT(request: Request) {
       product: products[index]
     })
   } catch (error: any) {
+    console.error('PUT product error:', error)
     return NextResponse.json({
       success: false,
       message: error.message === 'Unauthorized' 
@@ -133,6 +160,7 @@ export async function DELETE(request: Request) {
       message: 'Product deleted successfully'
     })
   } catch (error: any) {
+    console.error('DELETE product error:', error)
     return NextResponse.json({
       success: false,
       message: error.message === 'Unauthorized' 
