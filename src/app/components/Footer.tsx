@@ -19,8 +19,8 @@ const Footer = () => {
             <address className="not-italic text-text-primary">
               <p>Near Golu Devta Temple</p>
               <p>Ghorakhal, Uttarakhand</p>
-              <p className="mt-2">Phone: +91 XXXXXXXXXX</p>
-              <p>Email: contact@sahprashadbhandar.com</p>
+              <p className="mt-2">Phone: +91 9675738746</p>
+              <p>Email: divyanshusah9675@gmail.com</p>
             </address>
           </div>
           
@@ -33,7 +33,7 @@ const Footer = () => {
               <Link href="#" className="text-primary hover:text-accent transition-colors">
                 <FaInstagram className="h-6 w-6" />
               </Link>
-              <Link href="#" className="text-primary hover:text-accent transition-colors">
+              <Link href="https://wa.me/919675738746" className="text-primary hover:text-accent transition-colors">
                 <FaWhatsapp className="h-6 w-6" />
               </Link>
             </div>

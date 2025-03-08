@@ -31,7 +31,7 @@ A modern, spiritual-themed website for Sah Prashad Bhandar, a traditional shop l
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/sah-prashad-bhandar.git
+git clone https://github.com/divs122/sah-prashad-bhandar.git
 cd sah-prashad-bhandar
 ```
 
@@ -89,8 +89,8 @@ Replace the placeholder images in the `public/images/` directory with your actua
 ## Contact
 
 For any queries regarding the website, please contact:
-- Email: contact@sahprashadbhandar.com
-- Phone: +91 XXXXXXXXXX
+- Email: divyanshusah9675@gmail.com
+- Phone: +91 9675738746
 
 ## License
 

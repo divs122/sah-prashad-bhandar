@@ -185,7 +185,7 @@ export default function Order() {
                 and payment details.
               </p>
               <p className="mt-2">
-                For any queries, please contact us at: +91 XXXXXXXXXX
+                For any queries, please contact us at: +91 9675738746
               </p>
             </div>
           </div>
