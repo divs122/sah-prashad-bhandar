@@ -72,15 +72,22 @@ export async function POST(request: Request) {
     checkAuth()
 
     const body = await request.json()
+    console.log('Received product data:', body)
+
     const products = await readProducts()
+    console.log('Current products count:', products.length)
     
     const newProduct = {
       id: Date.now(),
       ...body
     }
 
+    console.log('Creating new product:', newProduct)
     products.push(newProduct)
+    
+    console.log('Saving products file...')
     await writeProducts(products)
+    console.log('Products file saved successfully')
 
     return NextResponse.json({
       success: true,
@@ -88,12 +95,16 @@ export async function POST(request: Request) {
       product: newProduct
     })
   } catch (error: any) {
-    console.error('POST product error:', error)
+    console.error('POST product error details:', {
+      message: error.message,
+      stack: error.stack,
+      body: request.body
+    })
     return NextResponse.json({
       success: false,
       message: error.message === 'Unauthorized' 
         ? 'Unauthorized access' 
-        : 'Failed to create product'
+        : `Failed to create product: ${error.message}`
     }, { status: error.message === 'Unauthorized' ? 401 : 500 })
   }
 }
