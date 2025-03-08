@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { put } from '@vercel/blob'
 
+export const runtime = 'edge'
+
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     // Check authentication
@@ -32,8 +34,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Upload to Vercel Blob Storage
-    const blob = await put(filename, request, {
+    const blob = await put(filename, request.body as any, {
       access: 'public',
+      contentType: request.headers.get('content-type') || undefined
     })
 
     return NextResponse.json(blob)
