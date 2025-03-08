@@ -1,20 +1,10 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createClient } from '@vercel/kv'
-
-// Check if KV is configured
-if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-  console.error('KV database is not configured. Please set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.')
-}
-
-const kv = createClient({
-  url: process.env.KV_REST_API_URL || '',
-  token: process.env.KV_REST_API_TOKEN || '',
-})
-
-const PRODUCTS_KEY = 'products'
+import clientPromise from '@/lib/mongodb'
+import { ObjectId } from 'mongodb'
 
 interface Product {
+  _id?: ObjectId
   id: number
   name: string
   description: string
@@ -31,47 +21,31 @@ const checkAuth = () => {
   }
 }
 
-// Helper to read products
-const readProducts = async (): Promise<Product[]> => {
+// Helper to get MongoDB collection
+const getCollection = async () => {
   try {
-    // Check if KV is configured
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      throw new Error('KV database is not configured')
-    }
-
-    const products = await kv.get<Product[]>(PRODUCTS_KEY)
-    if (!products) {
-      // Initialize with empty array if no products exist
-      await kv.set(PRODUCTS_KEY, [])
-      return []
-    }
-    return products
+    const client = await clientPromise
+    const db = client.db('sah-prashad')
+    return db.collection<Product>('products')
   } catch (error) {
-    console.error('Error reading products:', error)
-    throw new Error('Failed to read products from database')
-  }
-}
-
-// Helper to write products
-const writeProducts = async (products: Product[]) => {
-  try {
-    // Check if KV is configured
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      throw new Error('KV database is not configured')
-    }
-
-    await kv.set(PRODUCTS_KEY, products)
-  } catch (error) {
-    console.error('Error writing products:', error)
-    throw new Error('Failed to save products to database')
+    console.error('MongoDB connection error:', error)
+    throw new Error('Failed to connect to database')
   }
 }
 
 // GET - List all products
 export async function GET() {
   try {
-    const products = await readProducts()
-    return NextResponse.json({ success: true, products })
+    const collection = await getCollection()
+    const products = await collection.find({}).toArray()
+    
+    return NextResponse.json({ 
+      success: true, 
+      products: products.map(p => ({
+        ...p,
+        _id: p._id?.toString() // Convert ObjectId to string
+      }))
+    })
   } catch (error: any) {
     console.error('GET products error:', error)
     return NextResponse.json({
@@ -89,8 +63,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('Received product data:', body)
 
-    const products = await readProducts()
-    console.log('Current products count:', products.length)
+    const collection = await getCollection()
     
     const newProduct: Product = {
       id: Date.now(),
@@ -102,16 +75,16 @@ export async function POST(request: Request) {
     }
 
     console.log('Creating new product:', newProduct)
-    products.push(newProduct)
-    
-    console.log('Saving products to KV store...')
-    await writeProducts(products)
-    console.log('Products saved successfully')
+    const result = await collection.insertOne(newProduct)
+    console.log('Product created with ID:', result.insertedId)
 
     return NextResponse.json({
       success: true,
       message: 'Product created successfully',
-      product: newProduct
+      product: {
+        ...newProduct,
+        _id: result.insertedId.toString()
+      }
     })
   } catch (error: any) {
     console.error('POST product error details:', {
@@ -136,23 +109,27 @@ export async function PUT(request: Request) {
     const body = await request.json()
     const { id, ...updateData } = body
     
-    const products = await readProducts()
-    const index = products.findIndex(p => p.id === id)
+    const collection = await getCollection()
+    const result = await collection.findOneAndUpdate(
+      { id: id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    )
     
-    if (index === -1) {
+    if (!result) {
       return NextResponse.json({
         success: false,
         message: 'Product not found'
       }, { status: 404 })
     }
 
-    products[index] = { ...products[index], ...updateData }
-    await writeProducts(products)
-
     return NextResponse.json({
       success: true,
       message: 'Product updated successfully',
-      product: products[index]
+      product: {
+        ...result,
+        _id: result._id?.toString()
+      }
     })
   } catch (error: any) {
     console.error('PUT product error:', error)
@@ -173,17 +150,15 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url)
     const id = Number(url.pathname.split('/').pop())
     
-    const products = await readProducts()
-    const filteredProducts = products.filter(p => p.id !== id)
+    const collection = await getCollection()
+    const result = await collection.deleteOne({ id: id })
     
-    if (products.length === filteredProducts.length) {
+    if (result.deletedCount === 0) {
       return NextResponse.json({
         success: false,
         message: 'Product not found'
       }, { status: 404 })
     }
-
-    await writeProducts(filteredProducts)
 
     return NextResponse.json({
       success: true,
