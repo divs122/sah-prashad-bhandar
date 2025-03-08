@@ -7,24 +7,31 @@ import Footer from './components/Footer'
 const featuredProducts = [
   {
     id: 1,
+    name: 'Golu Devta Murti',
+    description: 'Divine idol of Golu Devta, blessed and consecrated',
+    image: '/images/murti.png',
+    price: '₹2,501',
+  },
+  {
+    id: 2,
     name: 'Prashad Thali',
     description: 'Box includes: Doop, Khichdi, Pithiya/Chandan, Shringaar, Nariyal with chunri, Parmal, Ilaichidana, Batasha',
     image: '/images/prashad.jpg',
     price: '₹151',
   },
   {
-    id: 2,
+    id: 3,
+    name: 'Blowing Shank',
+    description: 'Loud Resounding Sound',
+    image: '/images/blowing shank.jpg',
+    price: '₹2,101',
+  },
+  {
+    id: 4,
     name: 'Brass Temple Bell',
     description: 'Traditional temple bell with divine sound',
     image: '/images/bell3.jpg',
     price: '₹1,000/kg',
-  },
-  {
-    id: 3,
-    name: 'Rudraksha Mala',
-    description: 'Pure & authentic Rudraksha prayer beads',
-    image: '/images/rudraksha.jpg',
-    price: '₹2,101',
   },
 ]
 
