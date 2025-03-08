@@ -13,7 +13,7 @@ const categories = [
         id: 1,
         name: 'Prashad Thali',
         description: 'Box includes: Doop, Khichdi, Pithiya/Chandan, Shringaar, Nariyal with chunri, Parmal, Ilaichidana, Batasha',
-        price: '₹151',
+        price: '₹101',
         image: '/images/prashad-box.jpg',
       },
       {
