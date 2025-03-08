@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { put } from '@vercel/blob'
 
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<NextResponse> {
   try {
     // Check authentication
     const token = cookies().get('admin_token')
@@ -14,55 +14,34 @@ export async function POST(request: Request) {
       }, { status: 401 })
     }
 
-    const formData = await request.formData()
-    const file = formData.get('file') as File
+    const { searchParams } = new URL(request.url)
+    const filename = searchParams.get('filename')
 
-    if (!file) {
-      console.log('Upload failed: No file provided')
+    if (!filename) {
       return NextResponse.json({
         success: false,
-        message: 'No file uploaded'
+        message: 'Filename is required'
       }, { status: 400 })
     }
 
-    console.log('Processing file upload:', {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    })
-
-    // Check if BLOB store is configured
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('BLOB_READ_WRITE_TOKEN is not configured')
+    if (!request.body) {
       return NextResponse.json({
         success: false,
-        message: 'Storage configuration error'
-      }, { status: 500 })
+        message: 'No file content provided'
+      }, { status: 400 })
     }
 
     // Upload to Vercel Blob Storage
-    const timestamp = Date.now()
-    const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`
-    
-    console.log('Uploading to blob storage:', filename)
-    const { url } = await put(filename, file, {
+    const blob = await put(filename, request, {
       access: 'public',
     })
-    console.log('File uploaded successfully:', url)
 
-    return NextResponse.json({
-      success: true,
-      url: url
-    })
+    return NextResponse.json(blob)
   } catch (error: any) {
-    console.error('Upload error details:', {
-      message: error.message,
-      stack: error.stack,
-      type: error.name
-    })
+    console.error('Upload error:', error)
     return NextResponse.json({
       success: false,
-      message: `Failed to upload file: ${error.message}`
+      message: `Upload failed: ${error.message}`
     }, { status: 500 })
   }
 } 
