@@ -1,9 +1,50 @@
-import React from 'react'
+'use client';
+
+import React, { useState } from 'react'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { FaPhone, FaWhatsapp, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa'
 
 export default function Contact() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage({ type: '', text: '' });
+
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message });
+        // Reset form
+        (e.target as HTMLFormElement).reset();
+      } else {
+        setMessage({ type: 'error', text: result.message });
+      }
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: 'Failed to send message. Please try again or contact us directly.' 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <Header />
@@ -71,7 +112,16 @@ export default function Contact() {
               <h2 className="font-heading text-2xl font-bold text-primary mb-6">
                 Send us a Message
               </h2>
-              <form className="space-y-6">
+
+              {message.text && (
+                <div className={`p-4 rounded-md mb-6 ${
+                  message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {message.text}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="name" className="block text-text-primary font-medium mb-2">
                     Your Name
@@ -80,7 +130,7 @@ export default function Contact() {
                     type="text"
                     id="name"
                     name="name"
-                    className="input-field"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                 </div>
@@ -93,7 +143,7 @@ export default function Contact() {
                     type="email"
                     id="email"
                     name="email"
-                    className="input-field"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                 </div>
@@ -106,7 +156,7 @@ export default function Contact() {
                     type="tel"
                     id="phone"
                     name="phone"
-                    className="input-field"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   />
                 </div>
@@ -119,16 +169,19 @@ export default function Contact() {
                     id="message"
                     name="message"
                     rows={4}
-                    className="input-field"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     required
                   ></textarea>
                 </div>
 
                 <button
                   type="submit"
-                  className="btn-primary w-full"
+                  disabled={isSubmitting}
+                  className={`w-full px-6 py-3 bg-primary text-white font-medium rounded-md transition-colors ${
+                    isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent'
+                  }`}
                 >
-                  Send Message
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
             </div>
