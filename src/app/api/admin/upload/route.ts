@@ -16,6 +16,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       }, { status: 401 })
     }
 
+    // Check if blob store is configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN is not configured')
+      return NextResponse.json({
+        success: false,
+        message: 'Storage configuration error'
+      }, { status: 500 })
+    }
+
     const { searchParams } = new URL(request.url)
     const filename = searchParams.get('filename')
 
@@ -26,22 +35,41 @@ export async function POST(request: Request): Promise<NextResponse> {
       }, { status: 400 })
     }
 
-    if (!request.body) {
+    // Create a unique filename to prevent collisions
+    const uniqueFilename = `${Date.now()}-${filename}`
+
+    // Get the file from the request
+    const file = request.body
+    if (!file) {
       return NextResponse.json({
         success: false,
         message: 'No file content provided'
       }, { status: 400 })
     }
 
-    // Upload to Vercel Blob Storage
-    const blob = await put(filename, request.body as any, {
-      access: 'public',
-      contentType: request.headers.get('content-type') || undefined
+    console.log('Starting file upload:', {
+      filename: uniqueFilename,
+      contentType: request.headers.get('content-type')
     })
 
-    return NextResponse.json(blob)
+    // Upload to Vercel Blob Storage
+    const blob = await put(uniqueFilename, file, {
+      access: 'public',
+      contentType: request.headers.get('content-type') || 'application/octet-stream',
+      addRandomSuffix: false // Use our own unique filename
+    })
+
+    console.log('File uploaded successfully:', blob.url)
+
+    return NextResponse.json({
+      success: true,
+      ...blob
+    })
   } catch (error: any) {
-    console.error('Upload error:', error)
+    console.error('Upload error:', {
+      message: error.message,
+      stack: error.stack
+    })
     return NextResponse.json({
       success: false,
       message: `Upload failed: ${error.message}`

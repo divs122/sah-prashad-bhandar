@@ -15,6 +15,7 @@ export default function ProductForm({ onSubmit, loading }: ProductFormProps) {
     image: ''
   })
   const [uploadStatus, setUploadStatus] = useState('')
+  const [uploadError, setUploadError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -25,26 +26,51 @@ export default function ProductForm({ onSubmit, loading }: ProductFormProps) {
   const handleFileUpload = async (file: File) => {
     try {
       setUploadStatus('Uploading...')
-      const response = await fetch(`/api/admin/upload?filename=${file.name}`, {
-        method: 'POST',
-        body: file,
-      })
+      setUploadError('')
 
-      if (!response.ok) {
-        throw new Error('Upload failed')
+      // Validate file size (max 4MB)
+      if (file.size > 4 * 1024 * 1024) {
+        throw new Error('File size must be less than 4MB')
       }
 
-      const blob = await response.json() as PutBlobResult
-      setFormData(prev => ({ ...prev, image: blob.url }))
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Only image files are allowed')
+      }
+
+      const response = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Upload failed')
+      }
+
+      if (!data.success) {
+        throw new Error(data.message || 'Upload failed')
+      }
+
+      setFormData(prev => ({ ...prev, image: data.url }))
       setUploadStatus('Upload successful!')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error)
-      setUploadStatus('Upload failed. Please try again.')
+      setUploadError(error.message || 'Failed to upload image. Please try again.')
+      setUploadStatus('')
     }
   }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    if (uploadStatus === 'Uploading...') {
+      alert('Please wait for the image to finish uploading')
+      return
+    }
     onSubmit(formData)
   }
 
@@ -106,6 +132,7 @@ export default function ProductForm({ onSubmit, loading }: ProductFormProps) {
 
       <div>
         <label htmlFor="image" className="block text-sm font-medium text-gray-700">Product Image</label>
+        <p className="mt-1 text-sm text-gray-500">Max file size: 4MB. Supported formats: JPG, PNG, GIF</p>
         <input
           type="file"
           id="image"
@@ -121,8 +148,13 @@ export default function ProductForm({ onSubmit, loading }: ProductFormProps) {
           className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
         />
         {uploadStatus && (
-          <p className={`mt-2 text-sm ${uploadStatus.includes('failed') ? 'text-red-600' : 'text-green-600'}`}>
+          <p className="mt-2 text-sm text-green-600">
             {uploadStatus}
+          </p>
+        )}
+        {uploadError && (
+          <p className="mt-2 text-sm text-red-600">
+            {uploadError}
           </p>
         )}
         {formData.image && (
@@ -135,10 +167,10 @@ export default function ProductForm({ onSubmit, loading }: ProductFormProps) {
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={loading}
-          className={`px-4 py-2 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={loading || uploadStatus === 'Uploading...'}
+          className={`px-4 py-2 text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${(loading || uploadStatus === 'Uploading...') ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {loading ? 'Creating...' : 'Create Product'}
+          {loading ? 'Creating...' : uploadStatus === 'Uploading...' ? 'Uploading...' : 'Create Product'}
         </button>
       </div>
     </form>
