@@ -141,7 +141,7 @@ export default function About() {
               </div>
               <div className="relative h-96 rounded-lg overflow-hidden">
                 <Image
-                  src="/images/goludevta.jpg"
+                  src="/images/goludevta2.jpg"
                   alt="Golu Devta Temple"
                   fill
                   className="object-cover"
