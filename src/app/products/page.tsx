@@ -32,7 +32,7 @@ const categories = [
       {
         id: 3,
         name: 'Brass Golu Devta Idol',
-        description: 'Handcrafted brass idol of Golu Devta',
+        description: 'Handcrafted brass idol of Golu Devta, blessed and consecrated at the temple',
         price: '₹5,101',
         image: '/images/murti.png',
       },
@@ -101,7 +101,10 @@ export default function Products() {
                           src={product.image}
                           alt={product.name}
                           fill
-                          className="object-cover"
+                          className={`object-contain p-4 ${
+                            product.id === 3 ? 'scale-75' : 'object-cover p-0'
+                          }`}
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       </div>
                       <div className="p-6 md:w-1/2">
