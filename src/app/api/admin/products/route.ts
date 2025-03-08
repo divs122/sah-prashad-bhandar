@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import fs from 'fs/promises'
-import path from 'path'
+import { kv } from '@vercel/kv'
 
-const PRODUCTS_FILE = path.join(process.cwd(), 'data', 'products.json')
+const PRODUCTS_KEY = 'products'
+
+interface Product {
+  id: number
+  name: string
+  description: string
+  price: number
+  category: string
+  image?: string
+}
 
 // Middleware to check admin authentication
 const checkAuth = () => {
@@ -13,39 +21,21 @@ const checkAuth = () => {
   }
 }
 
-// Helper to ensure data directory exists
-const ensureDataDirectory = async () => {
-  const dataDir = path.join(process.cwd(), 'data')
+// Helper to read products
+const readProducts = async (): Promise<Product[]> => {
   try {
-    await fs.access(dataDir)
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true })
-  }
-}
-
-// Helper to read products file
-const readProducts = async () => {
-  try {
-    await ensureDataDirectory()
-    try {
-      const data = await fs.readFile(PRODUCTS_FILE, 'utf-8')
-      return JSON.parse(data)
-    } catch (error) {
-      // If file doesn't exist or is empty, initialize with empty array
-      await fs.writeFile(PRODUCTS_FILE, '[]')
-      return []
-    }
+    const products = await kv.get<Product[]>(PRODUCTS_KEY)
+    return products || []
   } catch (error) {
     console.error('Error reading products:', error)
     return []
   }
 }
 
-// Helper to write products file
-const writeProducts = async (products: any[]) => {
+// Helper to write products
+const writeProducts = async (products: Product[]) => {
   try {
-    await ensureDataDirectory()
-    await fs.writeFile(PRODUCTS_FILE, JSON.stringify(products, null, 2))
+    await kv.set(PRODUCTS_KEY, products)
   } catch (error) {
     console.error('Error writing products:', error)
     throw new Error('Failed to save products')
@@ -77,17 +67,21 @@ export async function POST(request: Request) {
     const products = await readProducts()
     console.log('Current products count:', products.length)
     
-    const newProduct = {
+    const newProduct: Product = {
       id: Date.now(),
-      ...body
+      name: body.name,
+      description: body.description,
+      price: Number(body.price),
+      category: body.category,
+      image: body.image
     }
 
     console.log('Creating new product:', newProduct)
     products.push(newProduct)
     
-    console.log('Saving products file...')
+    console.log('Saving products to KV store...')
     await writeProducts(products)
-    console.log('Products file saved successfully')
+    console.log('Products saved successfully')
 
     return NextResponse.json({
       success: true,
@@ -118,7 +112,7 @@ export async function PUT(request: Request) {
     const { id, ...updateData } = body
     
     const products = await readProducts()
-    const index = products.findIndex((p: any) => p.id === id)
+    const index = products.findIndex(p => p.id === id)
     
     if (index === -1) {
       return NextResponse.json({
@@ -155,7 +149,7 @@ export async function DELETE(request: Request) {
     const id = Number(url.pathname.split('/').pop())
     
     const products = await readProducts()
-    const filteredProducts = products.filter((p: any) => p.id !== id)
+    const filteredProducts = products.filter(p => p.id !== id)
     
     if (products.length === filteredProducts.length) {
       return NextResponse.json({
