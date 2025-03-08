@@ -28,10 +28,11 @@ export default function About() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="relative h-96 rounded-lg overflow-hidden">
                 <Image
-                  src="/images/shop-front.jpg"
+                  src="/images/shop.jpg"
                   alt="Sah Prashad Bhandar Shop Front"
                   fill
                   className="object-cover"
+                  priority
                 />
               </div>
               <div>
