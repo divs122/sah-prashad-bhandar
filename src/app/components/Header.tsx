@@ -3,20 +3,45 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ShoppingCartIcon } from '@heroicons/react/24/outline'
+import { ShoppingCartIcon, UserCircleIcon } from '@heroicons/react/24/outline'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { useRouter } from 'next/navigation'
 
 const Header = () => {
+  const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10)
     }
     window.addEventListener('scroll', handleScroll)
+    
+    // Check admin status
+    checkAdminStatus()
+
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  const checkAdminStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/check')
+      const data = await response.json()
+      setIsAdmin(data.isAuthenticated)
+    } catch (error) {
+      setIsAdmin(false)
+    }
+  }
+
+  const handleAdminClick = () => {
+    if (isAdmin) {
+      router.push('/admin/dashboard')
+    } else {
+      router.push('/admin/login')
+    }
+  }
 
   const navItems = [
     { name: 'Home', href: '/' },
@@ -92,8 +117,16 @@ const Header = () => {
             </button>
           </div>
 
-          {/* Shop Now Button - Desktop */}
-          <div className="hidden md:flex items-center">
+          {/* Desktop Action Buttons */}
+          <div className="hidden md:flex items-center space-x-4">
+            <button
+              onClick={handleAdminClick}
+              className="group relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-primary hover:text-accent transition-colors duration-300"
+            >
+              <UserCircleIcon className="h-6 w-6 mr-1 transition-transform duration-300 group-hover:scale-110" />
+              <span>{isAdmin ? 'Dashboard' : 'Admin'}</span>
+            </button>
+
             <Link
               href="/order"
               className="group relative inline-flex items-center px-6 py-3 text-sm font-medium rounded-md text-white bg-primary overflow-hidden transition-all duration-300 hover:bg-accent hover:scale-105 hover:shadow-lg"
@@ -132,6 +165,16 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
+            <button
+              onClick={() => {
+                handleAdminClick()
+                setIsMobileMenuOpen(false)
+              }}
+              className="block w-full text-left px-4 py-3 text-lg font-medium text-text-primary hover:text-primary hover:bg-gray-50 rounded-md transition-all duration-300 transform hover:translate-x-2"
+            >
+              <UserCircleIcon className="h-6 w-6 inline mr-2" />
+              {isAdmin ? 'Dashboard' : 'Admin Login'}
+            </button>
             <Link
               href="/order"
               className="block px-4 py-3 mt-6 text-lg font-medium text-white bg-primary hover:bg-accent rounded-md transition-all duration-300 transform hover:translate-x-2"
