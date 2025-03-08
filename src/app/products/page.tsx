@@ -4,31 +4,70 @@ import Link from 'next/link'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
-interface Product {
-  id: number
-  name: string
-  description: string
-  price: number
-  category: string
-  image?: string
-}
+const categories = [
+  {
+    id: 'prashad',
+    name: 'Prashad & Offerings',
+    products: [
+      {
+        id: 1,
+        name: 'Prashad Thali',
+        description: 'Box includes: Doop, Khichdi, Pithiya/Chandan, Shringaar, Nariyal with chunri, Parmal, Ilaichidana, Batasha',
+        price: '₹101',
+        image: '/images/prashad-box.jpg',
+      },
+      {
+        id: 2,
+        name: 'Prashad Thali With Bell',
+        description: 'Complete prashad thali with traditional temple bell for divine blessings',
+        price: '₹151',
+        image: '/images/prashad-box.jpg',
+      },
+    ],
+  },
+  {
+    id: 'statues',
+    name: 'God Statues & Idols',
+    products: [
+      {
+        id: 3,
+        name: 'Brass Golu Devta Idol',
+        description: 'Handcrafted brass idol of Golu Devta, blessed and consecrated at the temple',
+        price: '₹5,101',
+        image: '/images/murti.png',
+      },
+      {
+        id: 4,
+        name: 'Brass Golu Devta Idol (Large)',
+        description: 'Handcrafted brass idol of Golu Devta - Temple Size',
+        price: '₹15,101',
+        image: '/images/golu-devta.jpg',
+      },
+    ],
+  },
+  {
+    id: 'equipment',
+    name: 'Temple Equipment',
+    products: [
+      {
+        id: 5,
+        name: 'Temple Bell Set',
+        description: 'Traditional brass bells in various sizes',
+        price: '₹1,000/kg',
+        image: '/images/bell3.jpg',
+      },
+      {
+        id: 6,
+        name: 'Puja Thali Set',
+        description: 'Complete brass puja thali with all accessories',
+        price: '₹1,501',
+        image: '/images/puja-thali.jpg',
+      },
+    ],
+  },
+]
 
-async function getProducts() {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/products`, {
-      cache: 'no-store' // Disable caching to always get fresh data
-    })
-    const data = await response.json()
-    return data.success ? data.products : []
-  } catch (error) {
-    console.error('Error fetching products:', error)
-    return []
-  }
-}
-
-export default async function ProductsPage() {
-  const products = await getProducts()
-
+export default function Products() {
   return (
     <>
       <Header />
@@ -38,38 +77,56 @@ export default async function ProductsPage() {
             Our Sacred Collection
           </h1>
 
-          {products.length === 0 ? (
-            <p className="text-center text-gray-500">No products available at the moment.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {products.map((product: Product) => (
-                <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <div className="relative h-48 w-full">
-                    {product.image ? (
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-gray-400">No image</span>
+          {categories.map((category) => (
+            <div key={category.id} className="mb-16">
+              <h2 className="font-heading text-2xl font-bold text-primary mb-8">
+                {category.name}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+                {category.products.map((product) => (
+                  <div
+                    key={product.id}
+                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex flex-col md:flex-row">
+                      <div className="relative h-64 md:w-1/2">
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          fill
+                          className={`${
+                            product.id === 3 ? 'object-contain p-4 scale-75' : 
+                            product.id === 5 ? 'object-cover p-0' : 
+                            'object-contain p-2'
+                          }`}
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
                       </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h2 className="text-xl font-semibold mb-2">{product.name}</h2>
-                    <p className="text-gray-600 mb-2 line-clamp-2">{product.description}</p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-bold text-indigo-600">₹{product.price}</span>
-                      <span className="text-sm text-gray-500">{product.category}</span>
+                      <div className="p-6 md:w-1/2">
+                        <h3 className="font-heading text-xl font-bold text-primary mb-2">
+                          {product.name}
+                        </h3>
+                        <p className="text-text-primary mb-4">
+                          {product.description}
+                        </p>
+                        <div className="flex flex-col space-y-4">
+                          <span className="text-lg font-bold text-primary">
+                            {product.price}
+                          </span>
+                          <Link
+                            href={`/order?product=${product.id}`}
+                            className="inline-block px-6 py-2 bg-primary text-white text-center rounded hover:bg-accent transition-colors"
+                          >
+                            Order Now
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          )}
+          ))}
         </div>
       </main>
       <Footer />
