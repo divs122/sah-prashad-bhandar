@@ -51,16 +51,19 @@ export default function ProductForm({ initialData, mode = 'create' }: ProductFor
         const formDataFile = new FormData();
         formDataFile.append('file', selectedFile);
         
+        console.log('Uploading image...');
         const uploadRes = await fetch('/api/admin/upload', {
           method: 'POST',
           body: formDataFile,
         });
 
         if (!uploadRes.ok) {
-          throw new Error('Failed to upload image');
+          const uploadError = await uploadRes.json();
+          throw new Error(uploadError.error || 'Failed to upload image');
         }
 
         const uploadData = await uploadRes.json();
+        console.log('Image uploaded successfully:', uploadData);
         imageUrl = uploadData.url;
       }
 
@@ -70,6 +73,7 @@ export default function ProductForm({ initialData, mode = 'create' }: ProductFor
         image: imageUrl,
       };
 
+      console.log('Saving product data:', productData);
       const endpoint = mode === 'create' 
         ? '/api/admin/products' 
         : `/api/admin/products/${initialData?.id}`;
@@ -82,13 +86,17 @@ export default function ProductForm({ initialData, mode = 'create' }: ProductFor
         body: JSON.stringify(productData),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error('Failed to save product');
+        throw new Error(data.error || 'Failed to save product');
       }
 
+      console.log('Product saved successfully:', data);
       router.push('/admin/products');
       router.refresh();
     } catch (err) {
+      console.error('Error in form submission:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);

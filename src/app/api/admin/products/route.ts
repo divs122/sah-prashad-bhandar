@@ -64,20 +64,54 @@ export async function GET() {
 // POST - Create new product
 export async function POST(request: NextRequest) {
   try {
+    // Log the KV connection status
+    console.log('KV Status:', kv ? 'Connected' : 'Not connected')
+
     const product = await request.json()
-    const products = (await kv.get<Product[]>(PRODUCTS_KEY)) || []
+    console.log('Received product data:', product)
+
+    // Validate required fields
+    const requiredFields = ['name', 'description', 'price', 'category', 'image']
+    const missingFields = requiredFields.filter(field => !product[field])
+    
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields)
+      return NextResponse.json(
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
+    // Get existing products
+    let products: Product[] = []
+    try {
+      products = (await kv.get<Product[]>(PRODUCTS_KEY)) || []
+      console.log('Retrieved existing products:', products)
+    } catch (kvError) {
+      console.error('Error retrieving products from KV:', kvError)
+      throw new Error('Failed to access product storage')
+    }
 
     // Generate a unique ID
     product.id = Date.now().toString()
 
+    // Add the new product
     products.push(product)
-    await kv.set(PRODUCTS_KEY, products)
+
+    // Save updated products list
+    try {
+      await kv.set(PRODUCTS_KEY, products)
+      console.log('Successfully saved products')
+    } catch (kvError) {
+      console.error('Error saving to KV:', kvError)
+      throw new Error('Failed to save product')
+    }
 
     return NextResponse.json(product)
   } catch (error) {
     console.error('Failed to create product:', error)
     return NextResponse.json(
-      { error: 'Failed to create product' },
+      { error: error instanceof Error ? error.message : 'Failed to create product' },
       { status: 500 }
     )
   }
