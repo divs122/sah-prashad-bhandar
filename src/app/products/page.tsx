@@ -3,30 +3,71 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-import { getProducts, Product } from '@/lib/products'
 
-interface GroupedProducts {
-  [key: string]: Product[]
-}
+const categories = [
+  {
+    id: 'prashad',
+    name: 'Prashad & Offerings',
+    products: [
+      {
+        id: 1,
+        name: 'Prashad Thali',
+        description: 'Box includes: Doop, Khichdi, Pithiya/Chandan, Shringaar, Nariyal with chunri, Parmal, Ilaichidana, Batasha',
+        price: '₹101',
+        image: '/images/prashad-box.jpg',
+      },
+      {
+        id: 2,
+        name: 'Prashad Thali With Bell',
+        description: 'Complete prashad thali with traditional temple bell for divine blessings',
+        price: '₹151',
+        image: '/images/prashad-box.jpg',
+      },
+    ],
+  },
+  {
+    id: 'statues',
+    name: 'God Statues & Idols',
+    products: [
+      {
+        id: 3,
+        name: 'Brass Golu Devta Idol',
+        description: 'Handcrafted brass idol of Golu Devta, blessed and consecrated at the temple',
+        price: '₹5,101',
+        image: '/images/murti.png',
+      },
+      {
+        id: 4,
+        name: 'Brass Golu Devta Idol (Large)',
+        description: 'Handcrafted brass idol of Golu Devta - Temple Size',
+        price: '₹15,101',
+        image: '/images/golu-devta.jpg',
+      },
+    ],
+  },
+  {
+    id: 'equipment',
+    name: 'Temple Equipment',
+    products: [
+      {
+        id: 5,
+        name: 'Temple Bell Set',
+        description: 'Traditional brass bells in various sizes',
+        price: '₹1,000/kg',
+        image: '/images/bell3.jpg',
+      },
+      {
+        id: 6,
+        name: 'Puja Thali Set',
+        description: 'Complete brass puja thali with all accessories',
+        price: '₹1,501',
+        image: '/images/puja-thali.jpg',
+      },
+    ],
+  },
+]
 
-export default async function Products() {
-  const products = await getProducts()
-
-  // Group products by category
-  const groupedProducts = products.reduce<GroupedProducts>((acc, product) => {
-    const category = {
-      prashad: 'Prashad & Offerings',
-      statues: 'God Statues & Idols',
-      equipment: 'Temple Equipment'
-    }[product.category] || product.category
-
-    if (!acc[category]) {
-      acc[category] = []
-    }
-    acc[category].push(product)
-    return acc
-  }, {})
-
+export default function Products() {
   return (
     <>
       <Header />
@@ -36,13 +77,13 @@ export default async function Products() {
             Our Sacred Collection
           </h1>
 
-          {Object.entries(groupedProducts).map(([category, categoryProducts]) => (
-            <div key={category} className="mb-16">
+          {categories.map((category) => (
+            <div key={category.id} className="mb-16">
               <h2 className="font-heading text-2xl font-bold text-primary mb-8">
-                {category}
+                {category.name}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-                {categoryProducts.map((product) => (
+                {category.products.map((product) => (
                   <div
                     key={product.id}
                     className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
@@ -53,7 +94,11 @@ export default async function Products() {
                           src={product.image}
                           alt={product.name}
                           fill
-                          className="object-contain p-2"
+                          className={`${
+                            product.id === 3 ? 'object-contain p-4 scale-75' : 
+                            product.id === 5 ? 'object-cover p-0' : 
+                            'object-contain p-2'
+                          }`}
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       </div>
