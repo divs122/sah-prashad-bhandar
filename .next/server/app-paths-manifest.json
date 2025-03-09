@@ -1,10 +1,19 @@
 {
   "/_not-found": "app/_not-found.js",
-  "/products/page": "app/products/page.js",
+  "/admin/login/page": "app/admin/login/page.js",
+  "/api/admin/check/route": "app/api/admin/check/route.js",
+  "/about/page": "app/about/page.js",
+  "/admin/products/new/page": "app/admin/products/new/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/products/edit/[id]/page": "app/admin/products/edit/[id]/page.js",
+  "/admin/products/page": "app/admin/products/page.js",
+  "/api/admin/login/route": "app/api/admin/login/route.js",
+  "/api/admin/products/route": "app/api/admin/products/route.js",
+  "/api/admin/logout/route": "app/api/admin/logout/route.js",
   "/contact/page": "app/contact/page.js",
-  "/api/contact/route": "app/api/contact/route.js",
   "/order/page": "app/order/page.js",
   "/api/submit-order/route": "app/api/submit-order/route.js",
+  "/api/contact/route": "app/api/contact/route.js",
   "/page": "app/page.js",
-  "/about/page": "app/about/page.js"
+  "/products/page": "app/products/page.js"
 }
