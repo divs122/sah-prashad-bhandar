@@ -1,8 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { put, list, del } from '@vercel/blob'
+import { readFile, writeFile } from 'fs/promises'
+import { existsSync } from 'fs'
+import { join } from 'path'
+import { mkdir } from 'fs/promises'
 
-const PRODUCTS_FILE = 'products.json'
+const DATA_DIR = join(process.cwd(), 'data')
+const PRODUCTS_FILE = join(DATA_DIR, 'products.json')
 
 interface Product {
   id: number
@@ -22,103 +27,58 @@ const checkAuth = () => {
   }
 }
 
-// Helper to read products
-const readProducts = async (): Promise<Product[]> => {
-  try {
-    // List all blobs to check if products.json exists
-    const { blobs } = await list()
-    const productsBlob = blobs.find(b => b.pathname === PRODUCTS_FILE)
-
-    if (!productsBlob) {
-      // Initialize with empty array if file doesn't exist
-      await put(PRODUCTS_FILE, JSON.stringify([]), {
-        access: 'public',
-        contentType: 'application/json'
-      })
-      return []
-    }
-
-    // Fetch the products file
-    const response = await fetch(productsBlob.url)
-    const products = await response.json()
-    return products
-  } catch (error) {
-    console.error('Error reading products:', error)
-    throw new Error('Failed to read products')
+async function ensureDataDirectory() {
+  if (!existsSync(DATA_DIR)) {
+    await mkdir(DATA_DIR, { recursive: true })
+  }
+  if (!existsSync(PRODUCTS_FILE)) {
+    await writeFile(PRODUCTS_FILE, JSON.stringify([], null, 2))
   }
 }
 
-// Helper to write products
-const writeProducts = async (products: Product[]) => {
-  try {
-    await put(PRODUCTS_FILE, JSON.stringify(products, null, 2), {
-      access: 'public',
-      contentType: 'application/json'
-    })
-  } catch (error) {
-    console.error('Error writing products:', error)
-    throw new Error('Failed to save products')
-  }
+async function getProductsData() {
+  await ensureDataDirectory()
+  const data = await readFile(PRODUCTS_FILE, 'utf-8')
+  return JSON.parse(data)
+}
+
+async function saveProductsData(products: any[]) {
+  await writeFile(PRODUCTS_FILE, JSON.stringify(products, null, 2))
 }
 
 // GET - List all products
 export async function GET() {
   try {
-    const products = await readProducts()
-    return NextResponse.json({ success: true, products })
-  } catch (error: any) {
-    console.error('GET products error:', error)
-    return NextResponse.json({
-      success: false,
-      message: `Failed to fetch products: ${error.message}`
-    }, { status: 500 })
+    const products = await getProductsData()
+    return NextResponse.json(products)
+  } catch (error) {
+    console.error('Failed to get products:', error)
+    return NextResponse.json(
+      { error: 'Failed to get products' },
+      { status: 500 }
+    )
   }
 }
 
 // POST - Create new product
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    checkAuth()
+    const products = await getProductsData()
+    const product = await request.json()
 
-    const body = await request.json()
-    console.log('Received product data:', body)
+    // Generate a unique ID
+    product.id = Date.now().toString()
 
-    const products = await readProducts()
-    
-    const newProduct: Product = {
-      id: Date.now(),
-      name: body.name,
-      description: body.description,
-      price: Number(body.price),
-      category: body.category,
-      image: body.image,
-      created_at: new Date().toISOString()
-    }
+    products.push(product)
+    await saveProductsData(products)
 
-    console.log('Creating new product:', newProduct)
-    products.push(newProduct)
-    
-    console.log('Saving products...')
-    await writeProducts(products)
-    console.log('Products saved successfully')
-
-    return NextResponse.json({
-      success: true,
-      message: 'Product created successfully',
-      product: newProduct
-    })
-  } catch (error: any) {
-    console.error('POST product error details:', {
-      message: error.message,
-      stack: error.stack,
-      body: request.body
-    })
-    return NextResponse.json({
-      success: false,
-      message: error.message === 'Unauthorized' 
-        ? 'Unauthorized access' 
-        : `Failed to create product: ${error.message}`
-    }, { status: error.message === 'Unauthorized' ? 401 : 500 })
+    return NextResponse.json(product)
+  } catch (error) {
+    console.error('Failed to create product:', error)
+    return NextResponse.json(
+      { error: 'Failed to create product' },
+      { status: 500 }
+    )
   }
 }
 
@@ -130,7 +90,7 @@ export async function PUT(request: Request) {
     const body = await request.json()
     const { id, ...updateData } = body
     
-    const products = await readProducts()
+    const products = await getProductsData()
     const index = products.findIndex(p => p.id === id)
     
     if (index === -1) {
@@ -147,7 +107,7 @@ export async function PUT(request: Request) {
       id: products[index].id // Preserve the original ID
     }
 
-    await writeProducts(products)
+    await saveProductsData(products)
 
     return NextResponse.json({
       success: true,
@@ -173,7 +133,7 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url)
     const id = Number(url.pathname.split('/').pop())
     
-    const products = await readProducts()
+    const products = await getProductsData()
     const productToDelete = products.find(p => p.id === id)
     
     if (!productToDelete) {
@@ -199,7 +159,7 @@ export async function DELETE(request: Request) {
 
     // Remove the product from the list
     const updatedProducts = products.filter(p => p.id !== id)
-    await writeProducts(updatedProducts)
+    await saveProductsData(updatedProducts)
 
     return NextResponse.json({
       success: true,
