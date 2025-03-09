@@ -5,18 +5,19 @@ import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { mkdir } from 'fs/promises'
+import { kv } from '@vercel/kv'
 
 const DATA_DIR = join(process.cwd(), 'data')
 const PRODUCTS_FILE = join(DATA_DIR, 'products.json')
+const PRODUCTS_KEY = 'products'
 
 interface Product {
-  id: number
+  id: string
   name: string
   description: string
-  price: number
+  price: string
+  image: string
   category: string
-  image?: string
-  created_at: string
 }
 
 // Middleware to check admin authentication
@@ -49,7 +50,7 @@ async function saveProductsData(products: any[]) {
 // GET - List all products
 export async function GET() {
   try {
-    const products = await getProductsData()
+    const products = (await kv.get<Product[]>(PRODUCTS_KEY)) || []
     return NextResponse.json(products)
   } catch (error) {
     console.error('Failed to get products:', error)
@@ -63,14 +64,14 @@ export async function GET() {
 // POST - Create new product
 export async function POST(request: NextRequest) {
   try {
-    const products = await getProductsData()
     const product = await request.json()
+    const products = (await kv.get<Product[]>(PRODUCTS_KEY)) || []
 
     // Generate a unique ID
     product.id = Date.now().toString()
 
     products.push(product)
-    await saveProductsData(products)
+    await kv.set(PRODUCTS_KEY, products)
 
     return NextResponse.json(product)
   } catch (error) {
@@ -83,95 +84,54 @@ export async function POST(request: NextRequest) {
 }
 
 // PUT - Update product
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
-    checkAuth()
-
-    const body = await request.json()
-    const { id, ...updateData } = body
-    
-    const products = await getProductsData()
-    const index = products.findIndex(p => p.id === id)
+    const { id, ...updateData } = await request.json()
+    const products = (await kv.get<Product[]>(PRODUCTS_KEY)) || []
+    const index = products.findIndex((p) => p.id === id)
     
     if (index === -1) {
       return NextResponse.json({
-        success: false,
-        message: 'Product not found'
+        error: 'Product not found'
       }, { status: 404 })
     }
 
-    // Update the product
-    products[index] = {
-      ...products[index],
-      ...updateData,
-      id: products[index].id // Preserve the original ID
-    }
+    products[index] = { ...products[index], ...updateData }
+    await kv.set(PRODUCTS_KEY, products)
 
-    await saveProductsData(products)
-
-    return NextResponse.json({
-      success: true,
-      message: 'Product updated successfully',
-      product: products[index]
-    })
-  } catch (error: any) {
-    console.error('PUT product error:', error)
-    return NextResponse.json({
-      success: false,
-      message: error.message === 'Unauthorized' 
-        ? 'Unauthorized access' 
-        : 'Failed to update product'
-    }, { status: error.message === 'Unauthorized' ? 401 : 500 })
+    return NextResponse.json(products[index])
+  } catch (error) {
+    console.error('Failed to update product:', error)
+    return NextResponse.json(
+      { error: 'Failed to update product' },
+      { status: 500 }
+    )
   }
 }
 
 // DELETE - Delete product
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
-    checkAuth()
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
 
-    const url = new URL(request.url)
-    const id = Number(url.pathname.split('/').pop())
-    
-    const products = await getProductsData()
-    const productToDelete = products.find(p => p.id === id)
-    
-    if (!productToDelete) {
-      return NextResponse.json({
-        success: false,
-        message: 'Product not found'
-      }, { status: 404 })
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Product ID is required' },
+        { status: 400 }
+      )
     }
 
-    // Delete the product's image if it exists
-    if (productToDelete.image) {
-      try {
-        const imageUrl = new URL(productToDelete.image)
-        const imagePath = imageUrl.pathname.split('/').pop()
-        if (imagePath) {
-          await del(imagePath)
-        }
-      } catch (error) {
-        console.error('Error deleting product image:', error)
-        // Continue with product deletion even if image deletion fails
-      }
-    }
+    const products = (await kv.get<Product[]>(PRODUCTS_KEY)) || []
+    const updatedProducts = products.filter((p) => p.id !== id)
+    await kv.set(PRODUCTS_KEY, updatedProducts)
 
-    // Remove the product from the list
-    const updatedProducts = products.filter(p => p.id !== id)
-    await saveProductsData(updatedProducts)
-
-    return NextResponse.json({
-      success: true,
-      message: 'Product deleted successfully'
-    })
-  } catch (error: any) {
-    console.error('DELETE product error:', error)
-    return NextResponse.json({
-      success: false,
-      message: error.message === 'Unauthorized' 
-        ? 'Unauthorized access' 
-        : 'Failed to delete product'
-    }, { status: error.message === 'Unauthorized' ? 401 : 500 })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Failed to delete product:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete product' },
+      { status: 500 }
+    )
   }
 } 

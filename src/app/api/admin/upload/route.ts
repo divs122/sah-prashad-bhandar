@@ -43,16 +43,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const timestamp = Date.now()
     const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const filename = `${timestamp}-${originalName}`
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
 
-    // Save the file
-    const filePath = join(UPLOADS_DIR, filename)
-    await writeFile(filePath, buffer)
+    // Upload to Vercel Blob
+    const blob = await put(filename, file, {
+      access: 'public',
+    })
 
-    // Return the URL
-    const url = `/uploads/${filename}`
-    return NextResponse.json({ url })
+    return NextResponse.json({ url: blob.url })
   } catch (error) {
     console.error('Upload error:', error)
     return NextResponse.json(
